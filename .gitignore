@@ -1,0 +1,138 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.envrc
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.egg
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+backend/.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# =========================
+# Jupyter / Notebooks
+# =========================
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# =========================
+# Logs & Runtime
+# =========================
+logs/
+*.log
+*.out
+*.err
+*.pid
+*.sqlite3
+*.db
+
+# =========================
+# Data (adjust as needed)
+# =========================
+# Ignore large or private data; keep sample data
+data/*
+!data/sample/
+!data/sample/**
+
+# If you keep raw downloads locally
+downloads/
+datasets/
+tmp/
+temp/
+
+# =========================
+# Vector DBs / Caches
+# =========================
+# Local Chroma/Qdrant/FAISS/Annoy/etc.
+chroma/
+qdrant_storage/
+faiss_index/
+*.faiss
+*.ann
+*.index
+*.npy
+
+# HuggingFace / Transformers caches
+.cache/
+.huggingface/
+transformers_cache/
+hf_cache/
+
+# =========================
+# IDEs / Editors
+# =========================
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# =========================
+# Type checkers / linters
+# =========================
+.mypy_cache/
+.pyre/
+.pytype/
+ruff_cache/
+
+# =========================
+# Build tools
+# =========================
+node_modules/
+dist-frontend/
+coverage/
+
+# =========================
+# Misc
+# =========================
+*.swp
+*.swo
+*~
