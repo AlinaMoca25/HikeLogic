@@ -1,0 +1,29 @@
+[out:json][timeout:900];
+// Definim aria de căutare
+{{geocodeArea:Romania}}->.searchArea;
+
+(
+  // 1. Traseele de bază și cabanele
+  relation["route"~"hiking|foot|walking"](area.searchArea);
+  node["amenity"="shelter"](area.searchArea);
+  node["tourism"="alpine_hut"](area.searchArea);
+  
+  // 2. Surse de apă
+  node["natural"="spring"](area.searchArea);
+  node["amenity"="drinking_water"](area.searchArea);
+
+  // 3. Natură și relief
+  node["natural"="peak"](area.searchArea);
+  node["tourism"="viewpoint"](area.searchArea);
+  node["natural"="cave_entrance"](area.searchArea);
+  node["natural"="saddle"](area.searchArea);
+
+  // 4. Siguranță și logistică
+  node["emergency"="mountain_rescue"](area.searchArea);
+  node["tourism"="camp_site"](area.searchArea);
+  way["highway"="via_ferrata"](area.searchArea);
+  node["amenity"="parking"](area.searchArea);
+);
+
+// Scoatem punctul central pentru fiecare element pentru a putea calcula distanțele în Python
+out center;
