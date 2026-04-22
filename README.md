@@ -1,5 +1,20 @@
 # HikeLogic
 
+
+## Setup
+1. Transform JSON data in .md files + yaml header
+cd chunking_setup
+python create_hiking_docs.py
+
+2. Setup Qdrant
+cd backend
+python setup_qdrant.py
+
+3. Embed and upsert files in the vector DB
+cd backend
+python ingest_all.py
+
+
 ---
 **Kaleidoscope Team**
 - Moldovan Anita
@@ -113,3 +128,4 @@ A cross-encoder re-scores the top-20 retrieved chunks and keeps only the top-5. 
 | **Weeks 7–8** | Prepare dataset; Integrate the model with a RAG pipeline prototype |
 | **Weeks 9–10** | Fine-tune LLM; Tool integration |
 | **Weeks 11–12** | Refinement; RLHF; Demo |
+

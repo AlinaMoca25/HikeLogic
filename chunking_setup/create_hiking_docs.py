@@ -58,7 +58,7 @@ id: osm_{t_id}
 type: trail
 region: Romania
 difficulty: {t_diff}
-marking: {t_mark}
+marking: "{t_mark}"
 elevation_gain: {t_asc}
 ---
 """

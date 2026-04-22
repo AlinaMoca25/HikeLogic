@@ -21,5 +21,5 @@ def create_collection(collection_name: str, vector_size: int = 384):
             distance=Distance.COSINE
         ),
     )
-
     print(f"Collection '{collection_name}' created successfully.")
+
