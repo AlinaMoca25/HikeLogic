@@ -27,6 +27,7 @@ pip-wheel-metadata/
 # Environment & Secrets
 # =========================
 .env
+backend/.env
 .env.*
 !.env.example
 *.pem
