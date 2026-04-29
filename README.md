@@ -9,21 +9,31 @@ pip install -r backend/requirements.txt
 QDRANT_URL=...
 QDRANT_API_KEY=...
 COLLECTION_NAME=hikelogic_docs
+HF_TOKEN=...
+GENERATION_MODEL=meta-llama/Llama-3.1-8B-Instruct
 
-3. Transform JSON data in .md files + yaml header
+3. Enable an Inference Provider on Hugging Face (one-time, in browser)
+HF token: https://huggingface.co/settings/tokens (Read scope is enough)
+Groq API key: https://console.groq.com
+At https://huggingface.co/settings/inference-providers, enable Groq and paste the Groq API key under "Custom key"
+
+4. Transform JSON data in .md files + yaml header
 cd chunking_setup
 python create_hiking_docs.py
 
-4. Setup Qdrant
+5. Setup Qdrant
 cd backend
 python setup_qdrant.py
 
-5. Embed and upsert files in the vector DB
+6. Embed and upsert files in the vector DB
 cd backend
 python ingest_all.py
 
-6. Sanity check the retriever (from project root)
+7. Sanity check the retriever (from project root)
 python -m backend.test_retrieval
+
+8. Sanity check the full pipeline (from project root)
+python -m backend.test_pipeline
 
 
 ---
@@ -148,8 +158,10 @@ hits = search("Cabana Bâlea")
 - [x] Qdrant collection (named dense+sparse)
 - [x] Ingest (1589 docs)
 - [x] Retriever + reranker
-- [ ] Generator
+- [x] Generator + pipeline (Llama-3.1-8B via Groq)
 - [ ] Fine-tuning
+- [ ] Agent tools (weather, distance)
+- [ ] RAGAS evaluation
 - [ ] RLHF + demo
 
 ---
