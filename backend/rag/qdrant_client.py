@@ -1,25 +1,42 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
-import os
-from dotenv import load_dotenv
+from qdrant_client.models import (
+    Distance,
+    SparseVectorParams,
+    VectorParams,
+)
 
-load_dotenv()
+from .config import (
+    COLLECTION_NAME,
+    DENSE_DIM,
+    DENSE_VECTOR_NAME,
+    QDRANT_API_KEY,
+    QDRANT_URL,
+    SPARSE_VECTOR_NAME,
+)
 
-def get_client():
-    return QdrantClient(
-        url=os.getenv("QDRANT_URL"),
-        api_key=os.getenv("QDRANT_API_KEY"),
-    )
+_client: QdrantClient | None = None
 
-def create_collection(collection_name: str, vector_size: int = 384):
+
+def get_client() -> QdrantClient:
+    global _client
+    if _client is None:
+        _client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+    return _client
+
+
+def create_collection(collection_name: str | None = None) -> None:
+    name = collection_name or COLLECTION_NAME
     client = get_client()
 
-    client.recreate_collection(
-        collection_name=collection_name,
-        vectors_config=VectorParams(
-            size=vector_size,
-            distance=Distance.COSINE
-        ),
-    )
-    print(f"Collection '{collection_name}' created successfully.")
+    if client.collection_exists(name):
+        client.delete_collection(name)
 
+    client.create_collection(
+        collection_name=name,
+        vectors_config={
+            DENSE_VECTOR_NAME: VectorParams(size=DENSE_DIM, distance=Distance.COSINE),
+        },
+        sparse_vectors_config={
+            SPARSE_VECTOR_NAME: SparseVectorParams(),
+        },
+    )

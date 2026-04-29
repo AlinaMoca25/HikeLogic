@@ -83,6 +83,17 @@ faiss_index/
 transformers_cache/
 hf_cache/
 
+# Model checkpoints (LLM weights, fine-tuning outputs, LoRA adapters)
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+checkpoints/
+runs/
+wandb/
+
 # =========================
 # IDEs / Editors
 # =========================
