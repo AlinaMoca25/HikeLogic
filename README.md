@@ -2,17 +2,28 @@
 
 
 ## Setup
-1. Transform JSON data in .md files + yaml header
+1. Install dependencies
+pip install -r backend/requirements.txt
+
+2. Create backend/.env (credentials from team chat)
+QDRANT_URL=...
+QDRANT_API_KEY=...
+COLLECTION_NAME=hikelogic_docs
+
+3. Transform JSON data in .md files + yaml header
 cd chunking_setup
 python create_hiking_docs.py
 
-2. Setup Qdrant
+4. Setup Qdrant
 cd backend
 python setup_qdrant.py
 
-3. Embed and upsert files in the vector DB
+5. Embed and upsert files in the vector DB
 cd backend
 python ingest_all.py
+
+6. Sanity check the retriever (from project root)
+python -m backend.test_retrieval
 
 
 ---
@@ -106,17 +117,40 @@ https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
 
 ### 1. Hybrid Search
 
-Dense retrieval (BGE-M3) matches semantic meaning — "easy walk near a lake" finds "gentle lakeside path." Sparse retrieval (BM25) catches exact names — "Retezat", "Cabana Bâlea." RRF fuses both. Neither alone handles HikeLogic's mix of vague queries and specific trail names.
+Dense retrieval (BGE-M3) matches semantic meaning — "easy walk near a lake" finds "gentle lakeside path." Sparse retrieval (BGE-M3 lexical weights, BM25-style) catches exact names — "Retezat", "Cabana Bâlea." RRF fuses both. Neither alone handles HikeLogic's mix of vague queries and specific trail names.
 
 ### 2. Re-ranking
 
-A cross-encoder re-scores the top-20 retrieved chunks and keeps only the top-5. Ensures safety-critical content — "trail closed, avalanche risk" — outranks generic descriptions regardless of embedding similarity. Improves RAGAS faithfulness directly.
+A cross-encoder (BGE-reranker-v2-m3) re-scores the top-20 retrieved chunks and keeps only the top-5. Ensures safety-critical content — "trail closed, avalanche risk" — outranks generic descriptions regardless of embedding similarity. Improves RAGAS faithfulness directly.
 
 **Pipeline:**
 1. User query
-2. Hybrid search — Dense (BGE-M3) + sparse (BM25) fused with RRF — top-20 chunks
+2. Hybrid search — Dense (BGE-M3) + sparse (BGE-M3 lexical weights) fused with RRF — top-20 chunks
 3. Re-ranking — Cross-encoder re-scores top-20, keeps top-5 for generation
 4. LLM generation — Fine-tuned SLM + safety prompt
+
+---
+
+## Public API
+
+The retriever is exposed as a single function. From the project root:
+
+from backend.rag.search import search
+hits = search("Cabana Bâlea")
+
+`search()` returns `list[Hit]`. Each `Hit` has `.text`, `.score`, and `.metadata` (name, region, difficulty, marking).
+
+---
+
+## Status
+
+- [x] Dataset + chunking
+- [x] Qdrant collection (named dense+sparse)
+- [x] Ingest (1589 docs)
+- [x] Retriever + reranker
+- [ ] Generator
+- [ ] Fine-tuning
+- [ ] RLHF + demo
 
 ---
 
@@ -128,4 +162,3 @@ A cross-encoder re-scores the top-20 retrieved chunks and keeps only the top-5. 
 | **Weeks 7–8** | Prepare dataset; Integrate the model with a RAG pipeline prototype |
 | **Weeks 9–10** | Fine-tune LLM; Tool integration |
 | **Weeks 11–12** | Refinement; RLHF; Demo |
-

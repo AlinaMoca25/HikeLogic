@@ -1,3 +1,3 @@
 from rag.qdrant_client import create_collection
 
-create_collection("hike_logic_romania")
+create_collection()
