@@ -10,12 +10,12 @@ QDRANT_URL=...
 QDRANT_API_KEY=...
 COLLECTION_NAME=hikelogic_docs
 HF_TOKEN=...
-GENERATION_MODEL=meta-llama/Llama-3.1-8B-Instruct
+GENERATION_MODEL=mistralai/Mistral-7B-Instruct-v0.2
 
 3. Enable an Inference Provider on Hugging Face (one-time, in browser)
 HF token: https://huggingface.co/settings/tokens (Read scope is enough)
 Groq API key: https://console.groq.com
-At https://huggingface.co/settings/inference-providers, enable Groq and paste the Groq API key under "Custom key"
+At https://huggingface.co/settings/inference-providers, enable Featherless-AI and paste the Featherless-AI API key under "Custom key"
 
 4. Transform JSON data in .md files + yaml header
 cd chunking_setup
@@ -58,6 +58,13 @@ pip install -r backend/requirements-finetune.txt
 
 Then start SFT:
 python -m backend.finetune.train_lora --model mistralai/Mistral-7B-Instruct-v0.2
+
+For tighter GPUs, reduce context length first:
+python -m backend.finetune.train_lora --model mistralai/Mistral-7B-Instruct-v0.2 --max-seq-length 1024
+
+If a 7B model still does not fit, use a smaller instruct model for the required
+fine-tuning run:
+python -m backend.finetune.train_lora --model Qwen/Qwen2.5-1.5B-Instruct --max-seq-length 1024
 
 The trainer intentionally refuses real 7B fine-tuning when CUDA is unavailable.
 Use `--allow-cpu` only for tiny smoke-test models, not for the project run.

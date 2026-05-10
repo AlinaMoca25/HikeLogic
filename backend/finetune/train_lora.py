@@ -13,6 +13,15 @@ from trl import SFTConfig, SFTTrainer
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "data"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "outputs" / "hikelogic-lora"
+DEFAULT_TARGET_MODULES = (
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+)
 
 
 def _format_chat(example, tokenizer) -> str:
@@ -34,7 +43,29 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
+    parser.add_argument("--lora-r", type=int, default=8)
+    parser.add_argument("--lora-alpha", type=int, default=16)
+    parser.add_argument("--lora-dropout", type=float, default=0.05)
+    parser.add_argument(
+        "--target-modules",
+        default=",".join(DEFAULT_TARGET_MODULES),
+        help="Comma-separated LoRA target modules.",
+    )
+    parser.add_argument(
+        "--device-map",
+        choices=["single-gpu", "auto"],
+        default="single-gpu",
+        help=(
+            "single-gpu keeps all quantized modules on GPU 0 and fails clearly if "
+            "VRAM is insufficient. auto may try CPU/disk dispatch."
+        ),
+    )
     parser.add_argument("--no-4bit", action="store_true")
+    parser.add_argument(
+        "--no-gradient-checkpointing",
+        action="store_true",
+        help="Disable gradient checkpointing. Uses more VRAM.",
+    )
     parser.add_argument(
         "--allow-cpu",
         action="store_true",
@@ -52,21 +83,29 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    using_cuda = torch.cuda.is_available()
     quantization_config = None
-    if not args.no_4bit and torch.cuda.is_available():
+    if not args.no_4bit and using_cuda:
         quantization_config = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=torch.float16,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
         )
 
+    device_map: str | dict[str, int] = "auto"
+    if using_cuda and args.device_map == "single-gpu":
+        device_map = {"": 0}
+
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        device_map="auto",
-        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        device_map=device_map,
+        dtype=torch.float16 if using_cuda else torch.float32,
         quantization_config=quantization_config,
     )
+    if not args.no_gradient_checkpointing:
+        model.gradient_checkpointing_enable()
+        model.config.use_cache = False
 
     dataset = load_dataset(
         "json",
@@ -78,20 +117,12 @@ def main() -> None:
     )
 
     peft_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.05,
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
         bias="none",
         task_type="CAUSAL_LM",
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
-        ],
+        target_modules=[module.strip() for module in args.target_modules.split(",") if module.strip()],
     )
 
     training_args = SFTConfig(
@@ -107,7 +138,10 @@ def main() -> None:
         eval_steps=100,
         save_steps=100,
         save_total_limit=2,
-        bf16=torch.cuda.is_available(),
+        bf16=False,
+        fp16=using_cuda,
+        gradient_checkpointing=not args.no_gradient_checkpointing,
+        optim="paged_adamw_8bit" if using_cuda else "adamw_torch",
         packing=False,
         dataset_text_field="text",
         report_to="none",
