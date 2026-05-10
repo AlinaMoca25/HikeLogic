@@ -25,6 +25,9 @@ python create_hiking_docs.py
 cd backend
 python setup_qdrant.py
 
+To intentionally delete and rebuild an existing collection:
+RECREATE_QDRANT_COLLECTION=1 python setup_qdrant.py
+
 6. Embed and upsert files in the vector DB
 cd backend
 python ingest_all.py
@@ -32,7 +35,34 @@ python ingest_all.py
 7. Sanity check the retriever (from project root)
 python -m backend.test_retrieval
 
-8. Sanity check the full pipeline (from project root)
+8. Evaluate retrieval against expected sources (from project root)
+python -m backend.evaluate_retrieval --mode hybrid
+
+For the slower cross-encoder reranked evaluation:
+python -m backend.evaluate_retrieval --mode rerank
+
+10. Evaluate grounded generation
+Dry run without calling the LLM:
+python -m backend.evaluate_generation --dry-run
+
+Full generation evaluation calls the configured Hugging Face inference provider:
+python -m backend.evaluate_generation --show-answers
+
+11. Build and validate fine-tuning data
+python -m backend.finetune.build_sft_dataset
+python -m backend.finetune.validate_dataset
+
+12. Fine-tune a LoRA adapter
+Install the training dependencies in an environment with a suitable GPU:
+pip install -r backend/requirements-finetune.txt
+
+Then start SFT:
+python -m backend.finetune.train_lora --model mistralai/Mistral-7B-Instruct-v0.2
+
+The trainer intentionally refuses real 7B fine-tuning when CUDA is unavailable.
+Use `--allow-cpu` only for tiny smoke-test models, not for the project run.
+
+13. Sanity check the full pipeline (from project root)
 python -m backend.test_pipeline
 
 
@@ -156,10 +186,11 @@ hits = search("Cabana Bâlea")
 
 - [x] Dataset + chunking
 - [x] Qdrant collection (named dense+sparse)
-- [x] Ingest (1589 docs)
+- [x] Ingest (12659 docs)
 - [x] Retriever + reranker
 - [x] Generator + pipeline (Llama-3.1-8B via Groq)
-- [ ] Fine-tuning
+- [x] Fine-tuning dataset + LoRA trainer
+- [ ] Fine-tuned adapter artifact
 - [ ] Agent tools (weather, distance)
 - [ ] RAGAS evaluation
 - [ ] RLHF + demo
