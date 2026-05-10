@@ -20,18 +20,30 @@ class BGEM3Embedder:
     def __init__(self):
         self.model = BGEM3FlagModel(DENSE_MODEL, use_fp16=True)
 
-    def embed_query(self, text: str) -> dict:
+    @staticmethod
+    def _format_sparse(sparse_dict: dict) -> dict:
+        return {
+            "indices": [int(k) for k in sparse_dict.keys()],
+            "values": [float(v) for v in sparse_dict.values()],
+        }
+
+    def embed_texts(self, texts: list[str]) -> list[dict]:
         output = self.model.encode(
-            [text],
+            texts,
             return_dense=True,
             return_sparse=True,
             return_colbert_vecs=False,
         )
-        dense = output["dense_vecs"][0].tolist()
-        sparse_dict = output["lexical_weights"][0]
-        indices = [int(k) for k in sparse_dict.keys()]
-        values = [float(v) for v in sparse_dict.values()]
-        return {
-            "dense": dense,
-            "sparse": {"indices": indices, "values": values},
-        }
+        embeddings = []
+        for dense_vec, sparse_dict in zip(output["dense_vecs"], output["lexical_weights"]):
+            dense = dense_vec.tolist() if hasattr(dense_vec, "tolist") else list(dense_vec)
+            embeddings.append(
+                {
+                    "dense": dense,
+                    "sparse": self._format_sparse(sparse_dict),
+                }
+            )
+        return embeddings
+
+    def embed_query(self, text: str) -> dict:
+        return self.embed_texts([text])[0]

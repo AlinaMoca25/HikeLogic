@@ -7,16 +7,19 @@ from .embeddings import BGEM3Embedder
 from .qdrant_client import get_client
 
 
-def upsert_trail_data(trail_metadata: dict, body_content: str) -> None:
-    client = get_client()
-    embedder = BGEM3Embedder.get_instance()
-    embedded = embedder.embed_query(body_content)
-
+def _point_from_embedding(trail_metadata: dict, body_content: str, embedded: dict) -> PointStruct:
     point_id = trail_metadata.get("id")
     if not point_id:
         point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, trail_metadata.get("name", "")))
 
-    point = PointStruct(
+    payload = {
+        key: value
+        for key, value in trail_metadata.items()
+        if key != "id" and value is not None
+    }
+    payload["text"] = body_content
+
+    return PointStruct(
         id=point_id,
         vector={
             DENSE_VECTOR_NAME: embedded["dense"],
@@ -25,13 +28,24 @@ def upsert_trail_data(trail_metadata: dict, body_content: str) -> None:
                 values=embedded["sparse"]["values"],
             ),
         },
-        payload={
-            "text": body_content,
-            "name": trail_metadata.get("name"),
-            "difficulty": trail_metadata.get("difficulty"),
-            "region": trail_metadata.get("region"),
-            "marking": trail_metadata.get("marking"),
-        },
+        payload=payload,
     )
 
-    client.upsert(collection_name=COLLECTION_NAME, points=[point])
+
+def upsert_trail_data(trail_metadata: dict, body_content: str) -> None:
+    upsert_trail_batch([(trail_metadata, body_content)])
+
+
+def upsert_trail_batch(items: list[tuple[dict, str]]) -> None:
+    if not items:
+        return
+
+    client = get_client()
+    embedder = BGEM3Embedder.get_instance()
+    texts = [body_content for _, body_content in items]
+    embeddings = embedder.embed_texts(texts)
+    points = [
+        _point_from_embedding(trail_metadata, body_content, embedded)
+        for (trail_metadata, body_content), embedded in zip(items, embeddings)
+    ]
+    client.upsert(collection_name=COLLECTION_NAME, points=points)

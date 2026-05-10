@@ -1,0 +1,86 @@
+[
+  {
+    "id": "named_trail_balea",
+    "query": "Cabana Bâlea",
+    "expected": [
+      {
+        "name_contains": "Bâlea",
+        "entity_type": "trail"
+      }
+    ]
+  },
+  {
+    "id": "region_trail_retezat",
+    "query": "Retezat trails",
+    "expected": [
+      {
+        "name_contains": "Retezat",
+        "entity_type": "trail"
+      }
+    ]
+  },
+  {
+    "id": "peak_omu",
+    "query": "Vârful Omu",
+    "expected": [
+      {
+        "name_contains": "Omu"
+      }
+    ]
+  },
+  {
+    "id": "poi_alpine_hut_exact",
+    "query": "Cabana Alexandru",
+    "expected": [
+      {
+        "name_contains": "Cabana Alexandru",
+        "entity_type": "poi",
+        "poi_type": "alpine_hut"
+      }
+    ]
+  },
+  {
+    "id": "poi_salvamont_named",
+    "query": "Salvamont Cheile Turzii",
+    "expected": [
+      {
+        "name_contains": "Salvamont Cheile Turzii",
+        "entity_type": "poi",
+        "poi_type": "mountain_rescue"
+      }
+    ]
+  },
+  {
+    "id": "poi_via_ferrata_named",
+    "query": "Via Ferrata Cheile Cutilor",
+    "expected": [
+      {
+        "name_contains": "Via Ferrata Cheile Cutilor",
+        "entity_type": "poi",
+        "poi_type": "via_ferrata"
+      }
+    ]
+  },
+  {
+    "id": "poi_water_balea",
+    "query": "Fântâna Bâlea",
+    "expected": [
+      {
+        "name_contains": "Fântâna Bâlea",
+        "entity_type": "poi",
+        "poi_type": "spring"
+      }
+    ]
+  },
+  {
+    "id": "poi_drinking_water_named",
+    "query": "Izvorul Tineretului apă potabilă",
+    "expected": [
+      {
+        "name_contains": "Izvorul Tineretului",
+        "entity_type": "poi",
+        "poi_type": "drinking_water"
+      }
+    ]
+  }
+]

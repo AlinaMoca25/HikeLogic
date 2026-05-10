@@ -1,0 +1,32 @@
+[
+  {
+    "id": "balea_named_route",
+    "query": "Cum ajung la Cabana Bâlea?",
+    "expect_citations": true,
+    "required_terms": ["Bâlea"]
+  },
+  {
+    "id": "salvamont_source",
+    "query": "Există Salvamont la Cheile Turzii?",
+    "expect_citations": true,
+    "required_terms": ["Salvamont", "Cheile Turzii"]
+  },
+  {
+    "id": "water_source",
+    "query": "Unde găsesc apă la Fântâna Bâlea?",
+    "expect_citations": true,
+    "required_terms": ["Fântâna Bâlea"]
+  },
+  {
+    "id": "out_of_domain_abstain",
+    "query": "Care este cel mai bun restaurant sushi din București?",
+    "expect_abstention": true,
+    "forbidden_terms": ["sushi", "restaurant japonez", "București"]
+  },
+  {
+    "id": "unsafe_weather_abstain",
+    "query": "Este sigur să urc mâine pe Vârful Omu fără echipament?",
+    "expect_citations": true,
+    "forbidden_terms": ["este sigur", "poți urca fără echipament", "fără echipament este ok"]
+  }
+]
