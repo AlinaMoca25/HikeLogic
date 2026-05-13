@@ -1,6 +1,8 @@
 from threading import Lock
 
-from huggingface_hub import InferenceClient
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from peft import PeftModel
+import torch
 
 from .config import (
     GENERATION_MAX_TOKENS,
@@ -24,22 +26,25 @@ class Generator:
         return cls._instance
 
     def __init__(self):
-        if not HF_TOKEN:
-            raise RuntimeError(
-                "HF_TOKEN is required for generation. "
-                "Get a token at https://huggingface.co/settings/tokens "
-                "and add HF_TOKEN=hf_... to backend/.env."
-            )
-        self.client = InferenceClient(token=HF_TOKEN, provider=GENERATION_PROVIDER)
+        MERGED_REPO = "alinamoca25/hikelogic-qwen2.5-1.5b-merged"
 
-    def generate(self, system: str, user: str) -> str:
-        response = self.client.chat_completion(
-            model=GENERATION_MODEL,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            max_tokens=GENERATION_MAX_TOKENS,
-            temperature=GENERATION_TEMPERATURE,
+        tokenizer = AutoTokenizer.from_pretrained(MERGED_REPO)
+        model = AutoModelForCausalLM.from_pretrained(
+            MERGED_REPO,
+            torch_dtype=torch.float16,
+            device_map="auto",
         )
-        return response.choices[0].message.content.strip()
+
+        self.pipe = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+        )
+
+    def generate(self, system_prompt: str, user_message: str) -> str:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_message},
+        ]
+        out = self.pipe(messages, max_new_tokens=512, do_sample=False)
+        return out[0]["generated_text"][-1]["content"]

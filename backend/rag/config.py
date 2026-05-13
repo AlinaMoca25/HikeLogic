@@ -37,7 +37,7 @@ TOP_K_RETRIEVE = 20
 TOP_K_RERANK = 5
 
 HF_TOKEN = os.getenv("HF_TOKEN")
-GENERATION_MODEL = os.getenv("GENERATION_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
+GENERATION_MODEL = os.getenv("GENERATION_MODEL", "alinamoca25/hikelogic-qwen2.5-1.5b")
 GENERATION_PROVIDER = os.getenv("GENERATION_PROVIDER", "auto")
 GENERATION_MAX_TOKENS = int(os.getenv("GENERATION_MAX_TOKENS", "512"))
 GENERATION_TEMPERATURE = float(os.getenv("GENERATION_TEMPERATURE", "0.1"))

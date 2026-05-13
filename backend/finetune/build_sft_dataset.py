@@ -44,8 +44,12 @@ def _load_docs(docs_dir: Path) -> list[LocalHit]:
         post = frontmatter.load(path)
         metadata = dict(post.metadata)
         name = metadata.get("name")
+        if not _known(name):
+            name = path.stem.replace("_", " ").replace("-", " ").title()
+            metadata["name"] = name
         body = post.content.strip()
-        if not _known(name) or not body:
+        if not body:
+            print(f"Skipping {path.name}: File body is empty.")
             continue
         hits.append(LocalHit(text=body, score=1.0, metadata=metadata))
     return hits
@@ -199,13 +203,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--docs-dir", type=Path, default=DEFAULT_DOCS_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--max-trails", type=int, default=800)
-    parser.add_argument("--max-pois", type=int, default=800)
+    parser.add_argument("--max-trails", type=int, default=40)
+    parser.add_argument("--max-pois", type=int, default=60)
     parser.add_argument("--eval-ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     docs = _load_docs(args.docs_dir)
+    print(f"Loaded {len(docs)} documents from {args.docs_dir}")
     examples = _build_examples(docs, args.max_trails, args.max_pois, args.seed)
 
     split_at = max(1, int(len(examples) * (1 - args.eval_ratio)))
