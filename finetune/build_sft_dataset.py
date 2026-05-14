@@ -18,7 +18,7 @@ import frontmatter
 
 from backend.rag.prompt import SYSTEM_PROMPT, build_user_message
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DOCS_DIR = ROOT / "chunking_setup" / "hiking_docs"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "data"
 
@@ -203,8 +203,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--docs-dir", type=Path, default=DEFAULT_DOCS_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--max-trails", type=int, default=40)
-    parser.add_argument("--max-pois", type=int, default=60)
+    parser.add_argument("--max-trails", type=int, default=100)
+    parser.add_argument("--max-pois", type=int, default=200)
     parser.add_argument("--eval-ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
