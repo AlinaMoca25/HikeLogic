@@ -1,0 +1,60 @@
+:root {
+  --bg-deep: #0f1a14;
+  --bg-panel: #162820;
+  --bg-elevated: #1e3529;
+  --bg-input: #243d30;
+  --border: rgba(168, 198, 172, 0.14);
+  --text: #eef4ea;
+  --text-muted: #9bb5a0;
+  --accent: #6fcf8a;
+  --accent-dim: #4a9e62;
+  --accent-glow: rgba(111, 207, 138, 0.25);
+  --warning: #e8b86d;
+  --danger: #e07a6a;
+  --user-bubble: #2a4a38;
+  --assistant-bubble: #1a2e24;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-deep);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+a {
+  color: var(--accent);
+}
