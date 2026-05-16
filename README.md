@@ -1,176 +1,131 @@
 # HikeLogic
 
+A hiking assistant for Romanian trails. Fine-tuned 7B SLM + hybrid RAG over OpenStreetMap data + a small agent layer for live weather and distance.
+
+**Team Kaleidoscope:** Moldovan Anita · Motofelea Viorelia · Moca Alina · Jităreanu Eduard-David · Oană Rareș
+
+## Pipeline
+
+```
+query → hybrid search (BGE-M3 dense + sparse, RRF) → top-20
+      → cross-encoder rerank (BGE-reranker-v2-m3) → top-5
+      → entity-grounding guard (abstain on missed entities)
+      → agent: weather / distance tools (when intent matches)
+      → fine-tuned Qwen2.5-7B with citation discipline
+```
+
+## Components
+
+| Layer | Choice |
+|---|---|
+| Data | OpenStreetMap via Overpass API — trails + named POIs (cabins, peaks, springs, viewpoints, saddles, caves, rescue bases, via ferrata) |
+| Chunking | One entity per chunk — each route relation and named POI becomes its own markdown doc with YAML frontmatter |
+| Vector DB | Qdrant Cloud, named multi-vector collection (dense 1024-d cosine + sparse), server-side RRF |
+| Embeddings | `BAAI/bge-m3` (dense + sparse in one pass), `BAAI/bge-reranker-v2-m3` for rerank |
+| Generator | `edededi/hikelogic-qwen2.5-7b` (4-bit local via transformers, or HF Inference API) |
+| Agent tools | Open-Meteo for weather, haversine for distance |
 
 ## Setup
-1. Install dependencies
+
+```bash
 pip install -r backend/requirements.txt
+```
 
-2. Create backend/.env (credentials from team chat)
-QDRANT_URL=...
-QDRANT_API_KEY=...
-COLLECTION_NAME=hikelogic_docs
-HF_TOKEN=...
-GENERATION_MODEL=meta-llama/Llama-3.1-8B-Instruct
+Create `backend/.env`:
 
-3. Enable an Inference Provider on Hugging Face (one-time, in browser)
-HF token: https://huggingface.co/settings/tokens (Read scope is enough)
-Groq API key: https://console.groq.com
-At https://huggingface.co/settings/inference-providers, enable Groq and paste the Groq API key under "Custom key"
+```
+QDRANT_URL=<cluster endpoint>
+QDRANT_API_KEY=<key>
+COLLECTION_NAME=hike_logic_romania
+HF_TOKEN=<hf read token>
+GENERATION_MODEL=edededi/hikelogic-qwen2.5-7b
+GENERATION_BACKEND=local
+GENERATION_LOAD_4BIT=1
+```
 
-4. Transform JSON data in .md files + yaml header
-cd chunking_setup
-python create_hiking_docs.py
+Build the index:
 
-5. Setup Qdrant
-cd backend
-python setup_qdrant.py
+```bash
+cd chunking_setup && python create_hiking_docs.py    # ~3 min, ~18K chunks
+cd ../backend && python setup_qdrant.py              # drop + recreate collection
+python ingest_all.py                                 # batched embed + upsert, ~2 min on GPU
+```
 
-6. Embed and upsert files in the vector DB
-cd backend
-python ingest_all.py
+## Usage
 
-7. Sanity check the retriever (from project root)
-python -m backend.test_retrieval
+```python
+from backend.rag.pipeline import answer        # plain RAG
+from backend.rag.agent import answer_with_agent  # RAG + weather/distance tools
 
-8. Sanity check the full pipeline (from project root)
-python -m backend.test_pipeline
+r = answer_with_agent("Cât de înalt este Vârful Negoiu?")
+print(r.text)                                  # cited answer
+for h in r.sources:
+    print(h.metadata["name"], h.score)
+```
 
+End-to-end smoke test (3 RAG + 1 agent query):
 
----
-**Kaleidoscope Team**
-- Moldovan Anita
-- Motofelea Viorelia
-- Moca Alina
-- Jitareanu Eduard-David
-- Oana Rares
+```bash
+python -m backend.test_e2e
+```
 
----
+For a one-shot Colab run (sets everything up and drops into a chat REPL), open `chat.ipynb`.
 
-## Dataset Selection
+## Repository layout
 
-### RAG Dataset
+```
+HikeLogic/
+├── chunking_setup/
+│   ├── overpass_query              # Overpass-Turbo query (route relations + POI tags)
+│   ├── romania_hiking.json         # raw OSM extract
+│   ├── create_hiking_docs.py       # JSON → markdown chunks with YAML frontmatter
+│   └── hiking_docs/                # generated chunks (gitignored)
+├── backend/
+│   ├── setup_qdrant.py             # create the collection
+│   ├── ingest_all.py               # batched embed + upsert (uses tqdm)
+│   ├── test_e2e.py                 # end-to-end smoke test
+│   ├── evaluate_ragas.py           # RAGAS faithfulness / answer_relevancy / context_precision
+│   ├── eval/ragas_queries.json     # eval set
+│   └── rag/
+│       ├── config.py               # env vars, model names, top-k
+│       ├── qdrant_client.py        # client + create_collection
+│       ├── embeddings.py           # BGE-M3 wrapper (dense + sparse, batched)
+│       ├── embedder.py             # batched upsert
+│       ├── retriever.py            # hybrid search via Qdrant Query API + RRF
+│       ├── reranker.py             # cross-encoder rerank
+│       ├── search.py               # search(query) → list[Hit]
+│       ├── prompt.py               # system prompt + context formatting
+│       ├── generator.py            # Qwen2.5-7B (local 4-bit or hf_api)
+│       ├── pipeline.py             # answer(query) + entity-grounding guard
+│       ├── tools.py                # weather (Open-Meteo) + haversine
+│       └── agent.py                # answer_with_agent(query) — RAG + tools
+└── finetune/
+    ├── build_dpo_candidates.py     # sample answer pairs for human ranking → DPO
+    ├── dpo_prompts.txt
+    └── HikeLogic_dpo.ipynb         # DPO training notebook
+```
 
-**OpenStreetMap (OSM)**
-- Open-source
-- https://www.openstreetmap.org
-- https://wiki.openstreetmap.org/wiki/Overpass_API
-- *Overpass Turbo tool* - run a simple query to export every hiking trail, spring, and cabin in Romania as a JSON file
-- Database of facts (coordinates, trail names, difficulty tags)
+## Hallucination mitigation
 
-### Fine-tuning Dataset
+Three layers, each catches a different failure mode:
 
-**Hugging Face Datasets**
-- https://huggingface.co/datasets/JasleenSingh91/travel-QA
-- https://huggingface.co/datasets/soniawmeyer/travel-conversations-finetuning
-
-**Synthetic Data**
-- Transform OSM Data using an LLM (prompt it to write blog posts based on the technical data)
-
-**Scrape local website**
-- Extract trail descriptions, difficulty levels, estimated times, and "points of interest" (cabins, springs, peaks)
-
----
-
-## Chosen Chunking Strategy
-
-### Entity-based chunking for OSM and route facts
-
-OpenStreetMap and Overpass exports are not long narratives; they are collections of factual records. Because of that, the system should not cut them into generic token windows.
-
-- Each **chunk** should represent **one meaningful object**: a trail, cabin, spring, peak access point, or route segment
-- This keeps the numerical facts **together**, such as coordinates, route name, distance, elevation, and difficulty tags
-- It also makes retrieval **easier** to explain: the user asks about a trail => the retriever returns the trail record
-- One of the **highest-value, lowest-complexity** choices for HikeLogic because the RAG data is already naturally organized as **real-world objects**
-
----
-
-## Database Selection
-
-### Unified Hybrid Engine
-
-Qdrant supports Multi-Vector Collections, allowing us to store both BGE-M3 dense embeddings and sparse (BM25-style) vectors in the same record.
-
-- **Benefit:** No need for a separate database for trail names. Qdrant performs the keyword and semantic search simultaneously, reducing latency and infrastructure complexity.
-
-### Native RRF (Reciprocal Rank Fusion)
-
-The fusion of "Easy walk" (semantic) and "Cabana Bâlea" (keyword) results is handled server-side within Qdrant.
-
-- **Benefit:** Eliminates manual "glue code" in Python. We send one query; Qdrant returns a single, mathematically re-ranked list of candidates ready for the cross-encoder.
-
----
-
-## Model Choices
-
-### 01. Chosen Model — Mistral-7B-Instruct
-
-- Open-source (Hugging Face)
-- ~7B parameters (efficient)
-- Strong reasoning for a small model
-- Supports domain-specific fine-tuning
-
-### 02. Why This Model
-
-- Optimized for RAG-based architecture
-- Low cost (no API required)
-- Aligns with SLM design goal
-- Adaptable to hiking & safety data
-- Can be aligned for safety-critical decisions
-
-**Backup Models:** Llama 3 (8B) - balanced performance
-
-https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
-
----
-
-## RAG Strategies
-
-### 1. Hybrid Search
-
-Dense retrieval (BGE-M3) matches semantic meaning — "easy walk near a lake" finds "gentle lakeside path." Sparse retrieval (BGE-M3 lexical weights, BM25-style) catches exact names — "Retezat", "Cabana Bâlea." RRF fuses both. Neither alone handles HikeLogic's mix of vague queries and specific trail names.
-
-### 2. Re-ranking
-
-A cross-encoder (BGE-reranker-v2-m3) re-scores the top-20 retrieved chunks and keeps only the top-5. Ensures safety-critical content — "trail closed, avalanche risk" — outranks generic descriptions regardless of embedding similarity. Improves RAGAS faithfulness directly.
-
-**Pipeline:**
-1. User query
-2. Hybrid search — Dense (BGE-M3) + sparse (BGE-M3 lexical weights) fused with RRF — top-20 chunks
-3. Re-ranking — Cross-encoder re-scores top-20, keeps top-5 for generation
-4. LLM generation — Fine-tuned SLM + safety prompt
-
----
-
-## Public API
-
-The retriever is exposed as a single function. From the project root:
-
-from backend.rag.search import search
-hits = search("Cabana Bâlea")
-
-`search()` returns `list[Hit]`. Each `Hit` has `.text`, `.score`, and `.metadata` (name, region, difficulty, marking).
-
----
+1. **System prompt** requires `[N]` citations and explicit abstention when context doesn't support an answer.
+2. **POI chunk design** repeats the name through the body (so short POI docs win retrieval against long trail docs) and labels the "nearby trails" section with `NU descriu X` (so the model doesn't conflate a POI with adjacent ones).
+3. **Entity-grounding guard** (`pipeline.check_entity_grounding`) extracts capitalized multi-word phrases from the query and abstains pre-generation if no top-N hit's name contains them. Catches near-miss conflations (e.g. `Cabana Bâlea Lac` → `Curmătura Bâlei`).
 
 ## Status
 
-- [x] Dataset + chunking
-- [x] Qdrant collection (named dense+sparse)
-- [x] Ingest (1589 docs)
-- [x] Retriever + reranker
-- [x] Generator + pipeline (Llama-3.1-8B via Groq)
-- [ ] Fine-tuning
-- [ ] Agent tools (weather, distance)
-- [ ] RAGAS evaluation
-- [ ] RLHF + demo
-
----
-
-## Timeline Proposal
-
-| Phase | Tasks |
+| Component | State |
 |---|---|
-| **Weeks 5–6** | Choose architecture |
-| **Weeks 7–8** | Prepare dataset; Integrate the model with a RAG pipeline prototype |
-| **Weeks 9–10** | Fine-tune LLM; Tool integration |
-| **Weeks 11–12** | Refinement; RLHF; Demo |
+| OSM extract + chunking | ✅ trails + named POIs (~18K chunks) |
+| Qdrant hybrid + rerank | ✅ |
+| Fine-tuned generator | ✅ Qwen2.5-7B |
+| Agent tools | ✅ weather + distance |
+| Hallucination guard | ✅ system prompt + POI design + entity grounding |
+| RAGAS evaluation | wired (`evaluate_ragas.py`), pending judge-LLM key |
+| DPO / RLHF | pair generation wired; needs human labels + training run |
+
+## License / data
+
+- OSM data © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright)
+- Code: not yet licensed

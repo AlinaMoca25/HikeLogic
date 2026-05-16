@@ -1,0 +1,22 @@
+[
+  {"query": "Ce trasee de drumeție sunt în Munții Bucegi?", "expected": "Bucegi"},
+  {"query": "Există surse de apă pe traseul către Cabana Bâlea Lac?", "expected": "izvor"},
+  {"query": "Ce marcaj are traseul către Vârful Moldoveanu?", "expected": "bandă"},
+  {"query": "Cât durează traseul către Vârful Omu?", "expected": "ore"},
+  {"query": "Există cabane în zona Vârfului Negoiu?", "expected": "cabană"},
+  {"query": "Care este dificultatea traseului Crucea Caraiman?", "expected": "T"},
+  {"query": "Există parcare lângă traseul Padina?", "expected": "parcare"},
+  {"query": "Există puncte Salvamont în zona Bâlea?", "expected": "Salvamont"},
+  {"query": "Ce via ferrata există în România?", "expected": "via ferrata"},
+  {"query": "Pot ajunge cu mașina la Cabana Diham?", "expected": "drum"},
+  {"query": "Care este altitudinea Vârfului Moldoveanu?", "expected": "m"},
+  {"query": "Există izvoare lângă Cabana Curmătura?", "expected": "izvor"},
+  {"query": "Care este cel mai bun restaurant din Sibiu?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Cât costă un bilet la opera din București?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Ce filme se difuzează la cinematograful Cityplex?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Care este cea mai bună marcă de pantofi de drumeție?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Cum se reziliază un contract Vodafone?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Care este prognoza meteo pentru Bucegi mâine?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Ce trasee sunt închise săptămâna asta?", "expected": "Nu am găsit surse relevante"},
+  {"query": "Care este nivelul apei în lacul Bâlea în acest moment?", "expected": "Nu am găsit surse relevante"}
+]

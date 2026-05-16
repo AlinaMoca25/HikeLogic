@@ -1,6 +1,7 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
+    PayloadSchemaType,
     SparseVectorParams,
     VectorParams,
 )
@@ -39,4 +40,10 @@ def create_collection(collection_name: str | None = None) -> None:
         sparse_vectors_config={
             SPARSE_VECTOR_NAME: SparseVectorParams(),
         },
+    )
+    # Payload index needed so retriever.py can filter by mountain_range.
+    client.create_payload_index(
+        collection_name=name,
+        field_name="mountain_range",
+        field_schema=PayloadSchemaType.KEYWORD,
     )

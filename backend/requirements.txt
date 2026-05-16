@@ -5,3 +5,14 @@ python-dotenv>=1.0
 python-frontmatter>=1.0
 numpy
 tqdm
+
+# Generation
+transformers>=4.45
+accelerate>=0.34
+bitsandbytes>=0.43
+torch>=2.2
+huggingface-hub>=0.25
+
+# Evaluation (optional — only needed for backend/evaluate_ragas.py)
+ragas>=0.2
+datasets>=2.20

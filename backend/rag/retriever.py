@@ -1,14 +1,14 @@
-# Step 0 verification (assumptions baked into this module):
-#   - Collection name: 'hike_logic_romania' (set via setup_qdrant.py -> create_collection).
-#   - Named vectors: 'dense' (BGE-M3, 1024-d, cosine) and 'sparse' (BGE-M3 lexical_weights).
-#     The pre-existing setup used a single unnamed 384-d MiniLM dense vector with no sparse;
-#     this module assumes setup_qdrant.py + ingest_all.py have been re-run against the
-#     updated rag/qdrant_client.py + rag/embedder.py (BGE-M3 named dense+sparse).
-#   - Sparse vectors come from BGE-M3's built-in lexical_weights, NOT a separate BM25 encoder.
-#   - Payload keys written by the ingest: text, name, difficulty, region, marking.
-#   - Point id: integer OSM id (extracted from frontmatter 'osm_<id>' in ingest_all.py).
+import unicodedata
 
-from qdrant_client.models import Fusion, FusionQuery, Prefetch, SparseVector
+from qdrant_client.models import (
+    FieldCondition,
+    Filter,
+    Fusion,
+    FusionQuery,
+    MatchValue,
+    Prefetch,
+    SparseVector,
+)
 
 from .config import (
     COLLECTION_NAME,
@@ -20,18 +20,39 @@ from .embeddings import BGEM3Embedder
 from .qdrant_client import get_client
 
 
-def hybrid_search(query: str, limit: int = TOP_K_RETRIEVE):
-    client = get_client()
-    embedder = BGEM3Embedder.get_instance()
-    embedded = embedder.embed_query(query)
+_MOUNTAIN_RANGES = [
+    "Bucegi", "Făgăraș", "Piatra Craiului", "Iezer-Păpușa", "Ciucaș",
+    "Postăvarul", "Piatra Mare", "Retezat", "Țarcu-Godeanu", "Parâng",
+    "Șureanu", "Cindrel", "Lotrului", "Vâlcan", "Mehedinți", "Apuseni",
+    "Trascău", "Rodna", "Maramureș", "Suhard", "Călimani", "Bistriței",
+    "Ceahlău", "Hășmaș", "Harghita",
+]
 
-    results = client.query_points(
+
+def _strip_diacritics(s: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+
+_RANGE_LOOKUP = {_strip_diacritics(r).lower(): r for r in _MOUNTAIN_RANGES}
+
+
+def detect_range(query: str) -> str | None:
+    folded = _strip_diacritics(query).lower()
+    for key, canonical in _RANGE_LOOKUP.items():
+        if key in folded:
+            return canonical
+    return None
+
+
+def _query_points(client, embedded, limit, query_filter):
+    return client.query_points(
         collection_name=COLLECTION_NAME,
         prefetch=[
             Prefetch(
                 query=embedded["dense"],
                 using=DENSE_VECTOR_NAME,
                 limit=limit,
+                filter=query_filter,
             ),
             Prefetch(
                 query=SparseVector(
@@ -40,10 +61,35 @@ def hybrid_search(query: str, limit: int = TOP_K_RETRIEVE):
                 ),
                 using=SPARSE_VECTOR_NAME,
                 limit=limit,
+                filter=query_filter,
             ),
         ],
         query=FusionQuery(fusion=Fusion.RRF),
         limit=limit,
         with_payload=True,
-    )
-    return results.points
+    ).points
+
+
+def hybrid_search(query: str, limit: int = TOP_K_RETRIEVE):
+    """Hybrid retrieve. When the query mentions a recognized mountain range,
+    filter chunks by `mountain_range` to disambiguate (e.g. Vf. Omu Bucegi vs
+    Suhard). Falls back to unfiltered search if the filter returns nothing or
+    the payload index doesn't exist yet."""
+    client = get_client()
+    embedder = BGEM3Embedder.get_instance()
+    embedded = embedder.embed_query(query)
+
+    detected = detect_range(query)
+    if detected:
+        query_filter = Filter(must=[
+            FieldCondition(key="mountain_range", match=MatchValue(value=detected))
+        ])
+        try:
+            points = _query_points(client, embedded, limit, query_filter)
+            if points:
+                return points
+        except Exception:
+            # Likely the payload index for mountain_range hasn't been created
+            # (older collection). Fall through to unfiltered search.
+            pass
+    return _query_points(client, embedded, limit, None)

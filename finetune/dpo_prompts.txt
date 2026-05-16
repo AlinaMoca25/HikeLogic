@@ -1,0 +1,34 @@
+Context:
+[1] Cabana Bâlea Lac  (difficulty: T2, marking: bandă roșie, region: Făgăraș)
+Marcaj: bandă roșie
+Timp estimat: 3-4 ore
+
+Question: Cât durează urcușul la Cabana Bâlea Lac?
+---
+Context:
+[1] Vârful Moldoveanu  (difficulty: T3, marking: bandă roșie, region: Făgăraș)
+Marcaj: bandă roșie
+
+Question: Este sigur să urc pe Vârful Moldoveanu iarna fără echipament alpin?
+---
+Context:
+[1] Traseul A  (difficulty: T2, marking: bandă roșie, region: Făgăraș)
+Marcaj: bandă roșie
+
+---
+
+[2] Traseul B  (difficulty: T3, marking: cruce albastră, region: Bucegi)
+Marcaj: cruce albastră
+
+Question: Compară dificultatea și marcajul traseelor A și B.
+---
+Context:
+(no sources matched the query)
+
+Question: Ce hotel de lux recomanzi în Brașov pentru un city break?
+---
+Context:
+[1] Salvamont Sinaia  (point of interest)
+Tip: Bază / Refugiu Salvamont
+
+Question: Există echipă Salvamont la Sinaia și ce servicii oferă?

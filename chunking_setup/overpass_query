@@ -3,22 +3,28 @@
 {{geocodeArea:Romania}}->.searchArea;
 
 (
-  // 1. Traseele de bază și cabanele
+  // 1. Trasee de drumeție
   relation["route"~"hiking|foot|walking"](area.searchArea);
+
+  // 2. Cabane / refugii — broadened beyond alpine_hut. Real Romanian mountain
+  // cabins (e.g. Cabana Bâlea Lac) are often tagged motel / guest_house / hotel
+  // in OSM, and are mapped as `way` (building outline) rather than `node`.
+  node["tourism"~"alpine_hut|guest_house|chalet|hotel|motel|hostel|wilderness_hut"](area.searchArea);
+  way["tourism"~"alpine_hut|guest_house|chalet|hotel|motel|hostel|wilderness_hut"](area.searchArea);
   node["amenity"="shelter"](area.searchArea);
-  node["tourism"="alpine_hut"](area.searchArea);
-  
-  // 2. Surse de apă
+  way["amenity"="shelter"](area.searchArea);
+
+  // 3. Surse de apă
   node["natural"="spring"](area.searchArea);
   node["amenity"="drinking_water"](area.searchArea);
 
-  // 3. Natură și relief
+  // 4. Natură și relief
   node["natural"="peak"](area.searchArea);
   node["tourism"="viewpoint"](area.searchArea);
   node["natural"="cave_entrance"](area.searchArea);
   node["natural"="saddle"](area.searchArea);
 
-  // 4. Siguranță și logistică
+  // 5. Siguranță și logistică
   node["emergency"="mountain_rescue"](area.searchArea);
   node["tourism"="camp_site"](area.searchArea);
   way["highway"="via_ferrata"](area.searchArea);
